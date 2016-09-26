@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from os.path import dirname, join
 from time import strptime, strftime, sleep
+from json import loads
 from urllib.request import urlopen
 
 from PIL import Image
@@ -84,6 +85,7 @@ def checkTime():
         return False
     else:
         LAST_TIME = latest
+        print(latest)
         return latest
 
 while True:
