@@ -103,9 +103,9 @@ while True:
                 if timeStruct:
                     timeStr = strftime("%Y%m%d-%H%M%S", timeStruct)
                     mosaicPicture(timeStr)
-                    LAST_X = 0
-                    LAST_Y = 0
                     break
+            LAST_X = 0
+            LAST_Y = 0
         sleep(60)
     except Exception:
         pass
