@@ -5,20 +5,39 @@ from os.path import dirname, join
 from time import strptime, strftime, sleep
 from json import loads
 from urllib.request import urlopen
+from win32com.shell import shell, shellcon
+import pythoncom
 
 from PIL import Image
 
 LEVEL = 4
 WIDTH = 550
-DL_TIMEOUT = 6 * 60 / (LEVEL ** 2)
-BASE_DIR = "E:\\pictures\\"
+DL_TIMEOUT = 60
+BASE_DIR = "D:\\pictures\\"
 
 LAST_TIME = ''
 LAST_X = 0
 LAST_Y = 0
 REPEAT_TIMES = 10
+SLEEP_TIME = 120
 
+g_desk = ''
+WINDOWS_WPSTYLE = shellcon.WPSTYLE_MAX
 
+def getDeskComObject():
+    global g_desk
+    if not g_desk:
+        g_desk = pythoncom.CoCreateInstance(shell.CLSID_ActiveDesktop, \
+                                             None, pythoncom.CLSCTX_INPROC_SERVER, \
+                                             shell.IID_IActiveDesktop)
+    return g_desk
+
+def setWallPaper(paper):
+    desktop = getDeskComObject()
+    if desktop:
+        desktop.SetWallpaper(paper, 0)
+        desktop.SetWallpaperOptions(WINDOWS_WPSTYLE)
+        desktop.ApplyChanges(shellcon.AD_APPLY_ALL)
 
 def download_chunk(x, y, latest):
     url_format = "http://himawari8.nict.go.jp/img/D531106/{}d/{}/{}_{}_{}.png"
@@ -27,6 +46,7 @@ def download_chunk(x, y, latest):
 
     with urlopen(url , timeout=DL_TIMEOUT) as tile_w:
         tiledata = tile_w.read()
+    print('Download:'+url)
     downloadPicture(url, str(x)+str(y)+".png")
     return x, y
 
@@ -40,10 +60,9 @@ def getBeijingTime(nowtime):
     return flag + delta
 
 def downloadPicture(url, name):
-    path = "E:\\pictures"
     with urlopen(url , timeout=DL_TIMEOUT) as conn:
         if conn:
-            with open(path+"\\"+name,'wb') as f:
+            with open(BASE_DIR+"\\"+name,'wb') as f:
                 f.write(conn.read())
                 print('Pic' + name + 'Saved!')
 
@@ -55,10 +74,12 @@ def mosaicPicture(timeStr):
 
     for x in  range(LEVEL):
         for y in range(LEVEL):
-            fname = "E:\\pictures\\"+str(x)+str(y)+".png"
+            fname = BASE_DIR+str(x)+str(y)+".png"
             fromImage = Image.open(fname)
             toImage.paste(fromImage,( x*mw, y*mw))
-    toImage.save("E:\\pictures\\"+timeStr+".jpg")
+    picturePath = BASE_DIR+timeStr+".jpg"
+    toImage.save(picturePath)
+    return picturePath
 
 def main(latest):
     global LAST_X, LAST_Y
@@ -102,10 +123,11 @@ while True:
                     continue
                 if timeStruct:
                     timeStr = strftime("%Y%m%d-%H%M%S", timeStruct)
-                    mosaicPicture(timeStr)
+                    picturePath = mosaicPicture(timeStr)
+                    setWallPaper(picturePath)
                     break
             LAST_X = 0
             LAST_Y = 0
-        sleep(60)
+        SLEEP_TIME(60)
     except Exception:
         pass
